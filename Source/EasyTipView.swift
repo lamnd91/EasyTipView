@@ -140,6 +140,11 @@ public extension EasyTipView {
         transform = initialTransform
         alpha = initialAlpha
         
+        if (preferences.animating.dismissOnTapOutside) {
+            let tapOutside = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+            tapOutside.delegate = self
+            superview.addGestureRecognizer(tapOutside)
+        }
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         tap.delegate = self
         addGestureRecognizer(tap)
@@ -164,7 +169,9 @@ public extension EasyTipView {
      - parameter completion: Completion block to be executed after the EasyTipView is dismissed.
      */
     func dismiss(withCompletion completion: (() -> ())? = nil){
-        
+        if preferences.animating.dismissOnTapOutside, let tapOutside = superview?.gestureRecognizers?.last {
+            superview?.removeGestureRecognizer(tapOutside)
+        }
         let damping = preferences.animating.springDamping
         let velocity = preferences.animating.springVelocity
         
@@ -184,8 +191,14 @@ public extension EasyTipView {
 
 extension EasyTipView: UIGestureRecognizerDelegate {
 
-    open override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        return preferences.animating.dismissOnTap
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        let location = touch.location(in: self)
+        let isSelfTouched = self.bounds.contains(location)
+        if gestureRecognizer.view == self || isSelfTouched {
+            return preferences.animating.dismissOnTap
+        } else {
+            return preferences.animating.dismissOnTapOutside
+        }
     }
 }
 
@@ -243,6 +256,7 @@ open class EasyTipView: UIView {
             public var showDuration         = 0.7
             public var dismissDuration      = 0.7
             public var dismissOnTap         = true
+            public var dismissOnTapOutside  = true
         }
         
         public var drawing      = Drawing()
@@ -643,6 +657,8 @@ open class EasyTipView: UIView {
             drawText(bubbleFrame, context: context)
         case .view (let view):
             addSubview(view)
+            layoutIfNeeded()
+            view.frame = getContentRect(from: bubbleFrame)
         }
         
         drawShadow()
