@@ -143,7 +143,11 @@ public extension EasyTipView {
         if (preferences.animating.dismissOnTapOutside) {
             let tapOutside = UITapGestureRecognizer(target: self, action: #selector(handleTap))
             tapOutside.delegate = self
-            superview.addGestureRecognizer(tapOutside)
+            let touchView = UIView.init(frame: superview.frame)
+            touchView.backgroundColor = UIColor.init(white: 0, alpha: preferences.drawing.dimBackgroundAlpha)
+            touchView.tag = self.hash
+            touchView.addGestureRecognizer(tapOutside)
+            superview.addSubview(touchView)
         }
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         tap.delegate = self
@@ -169,8 +173,8 @@ public extension EasyTipView {
      - parameter completion: Completion block to be executed after the EasyTipView is dismissed.
      */
     func dismiss(withCompletion completion: (() -> ())? = nil){
-        if preferences.animating.dismissOnTapOutside, let tapOutside = superview?.gestureRecognizers?.last {
-            superview?.removeGestureRecognizer(tapOutside)
+        if preferences.animating.dismissOnTapOutside, let touchView = superview?.viewWithTag(self.hash) {
+            touchView.removeFromSuperview()
         }
         let damping = preferences.animating.springDamping
         let velocity = preferences.animating.springVelocity
@@ -235,6 +239,7 @@ open class EasyTipView: UIView {
             public var shadowOffset        = CGSize(width: 0.0, height: 0.0)
             public var shadowRadius        = CGFloat(0)
             public var shadowOpacity       = CGFloat(0)
+            public var dimBackgroundAlpha   = CGFloat(0.25)
         }
         
         public struct Positioning {
